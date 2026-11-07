@@ -14,7 +14,7 @@ Sustituye la IP por la de la computadora donde corre el servidor. La API escucha
 go run ./cmd/api
 ```
 
-Configura MySQL y `GOOGLE_CLIENT_ID` en `Servidor/.env`; importa `database.sql` antes de iniciar.
+Configura MySQL en `Servidor/.env`; importa `database.sql` antes de iniciar.
 
 ## Contrato GPS para el mapa
 

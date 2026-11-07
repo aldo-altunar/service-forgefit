@@ -19,7 +19,6 @@ type Config struct {
 	DBName             string
 	JWTSecret          string
 	JWTExpirationHours int
-	GoogleClientID     string
 }
 
 func LoadConfig() *Config {
@@ -42,7 +41,6 @@ func LoadConfig() *Config {
 		DBName:             getEnv("DB_NAME", "forgefit_db"),
 		JWTSecret:          getEnv("JWT_SECRET", "default-jwt-secret-key-change-me"),
 		JWTExpirationHours: jwtExpHours,
-		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 	}
 }
 

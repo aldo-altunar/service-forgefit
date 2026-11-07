@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -12,23 +11,20 @@ import (
 )
 
 type userService struct {
-	repo       ports.UserRepository
-	hasher     ports.PasswordHasher
-	tokenSvc   ports.TokenService
-	googleAuth ports.GoogleAuthService
+	repo     ports.UserRepository
+	hasher   ports.PasswordHasher
+	tokenSvc ports.TokenService
 }
 
 func NewUserService(
 	repo ports.UserRepository,
 	hasher ports.PasswordHasher,
 	tokenSvc ports.TokenService,
-	googleAuth ports.GoogleAuthService,
 ) ports.UserService {
 	return &userService{
-		repo:       repo,
-		hasher:     hasher,
-		tokenSvc:   tokenSvc,
-		googleAuth: googleAuth,
+		repo:     repo,
+		hasher:   hasher,
+		tokenSvc: tokenSvc,
 	}
 }
 
@@ -74,54 +70,6 @@ func (s *userService) Login(ctx context.Context, input ports.LoginInput) (*ports
 
 	if user.PasswordHash == nil || !s.hasher.Compare(input.Password, *user.PasswordHash) {
 		return nil, domain.ErrInvalidCredentials
-	}
-
-	token, err := s.tokenSvc.GenerateToken(user)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %w", err)
-	}
-
-	return &ports.AuthResponse{
-		Token: token,
-		User:  user,
-	}, nil
-}
-
-func (s *userService) GoogleLogin(ctx context.Context, input ports.GoogleLoginInput) (*ports.AuthResponse, error) {
-	googleUser, err := s.googleAuth.VerifyIDToken(ctx, input.IDToken)
-	if err != nil {
-		return nil, fmt.Errorf("google authentication failed: %w", err)
-	}
-
-	user, err := s.repo.FindByGoogleID(ctx, googleUser.GoogleID)
-	if errors.Is(err, domain.ErrUserNotFound) || user == nil {
-		// Also check if user exists by email
-		userByEmail, emailErr := s.repo.FindByEmail(ctx, googleUser.Email)
-		if emailErr == nil && userByEmail != nil {
-			// Link Google ID to existing email account
-			userByEmail.GoogleID = &googleUser.GoogleID
-			if googleUser.AvatarURL != "" {
-				userByEmail.AvatarURL = &googleUser.AvatarURL
-			}
-			if err := s.repo.Update(ctx, userByEmail); err != nil {
-				return nil, fmt.Errorf("failed to link google account: %w", err)
-			}
-			user = userByEmail
-		} else {
-			// Register new user via Google
-			newUser := &domain.User{
-				ID:           uuid.New().String(),
-				Name:         googleUser.Name,
-				Email:        googleUser.Email,
-				GoogleID:     &googleUser.GoogleID,
-				AuthProvider: domain.ProviderGoogle,
-				AvatarURL:    &googleUser.AvatarURL,
-			}
-			if err := s.repo.Create(ctx, newUser); err != nil {
-				return nil, fmt.Errorf("failed to create google user: %w", err)
-			}
-			user = newUser
-		}
 	}
 
 	token, err := s.tokenSvc.GenerateToken(user)

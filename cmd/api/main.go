@@ -41,9 +41,8 @@ func main() {
 
 	bcryptHasher := security.NewBcryptAdapter(10)
 	jwtService := security.NewJWTAdapter(cfg.JWTSecret, cfg.JWTExpirationHours)
-	googleAuth := security.NewGoogleAuthAdapter(cfg.GoogleClientID)
 
-	userService := services.NewUserService(userRepo, bcryptHasher, jwtService, googleAuth)
+	userService := services.NewUserService(userRepo, bcryptHasher, jwtService)
 	userProfileService := services.NewUserProfileService(userProfileRepo)
 	activityService := services.NewActivityService(activityRepo)
 	runService := services.NewRunService(runRepo)
@@ -79,7 +78,6 @@ func main() {
 		auth := api.Group("/auth")
 		auth.POST("/register", userHandler.Register)
 		auth.POST("/login", userHandler.Login)
-		auth.POST("/google", userHandler.GoogleLogin)
 
 		protected := api.Group("")
 		protected.Use(middlewares.AuthMiddleware(jwtService))

@@ -8,8 +8,7 @@ import (
 type AuthProvider string
 
 const (
-	ProviderLocal  AuthProvider = "local"
-	ProviderGoogle AuthProvider = "google"
+	ProviderLocal AuthProvider = "local"
 )
 
 type User struct {
@@ -17,7 +16,6 @@ type User struct {
 	Name         string       `json:"name"`
 	Email        string       `json:"email"`
 	PasswordHash *string      `json:"-"`
-	GoogleID     *string      `json:"google_id,omitempty"`
 	AuthProvider AuthProvider `json:"auth_provider"`
 	AvatarURL    *string      `json:"avatar_url,omitempty"`
 	CreatedAt    time.Time    `json:"created_at"`

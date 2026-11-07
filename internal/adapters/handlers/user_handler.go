@@ -65,25 +65,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 	})
 }
 
-func (h *UserHandler) GoogleLogin(c *gin.Context) {
-	var input ports.GoogleLoginInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "token de google inválido o requerido: " + err.Error()})
-		return
-	}
-
-	response, err := h.userService.GoogleLogin(c.Request.Context(), input)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "error en autenticación con Google: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "autenticación con Google exitosa",
-		"data":    response,
-	})
-}
-
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get(middlewares.ContextUserIDKey)
 	if !exists {

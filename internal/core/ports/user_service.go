@@ -16,10 +16,6 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type GoogleLoginInput struct {
-	IDToken string `json:"id_token" binding:"required"`
-}
-
 type AuthResponse struct {
 	Token string       `json:"token"`
 	User  *domain.User `json:"user"`
@@ -28,6 +24,5 @@ type AuthResponse struct {
 type UserService interface {
 	Register(ctx context.Context, input RegisterInput) (*AuthResponse, error)
 	Login(ctx context.Context, input LoginInput) (*AuthResponse, error)
-	GoogleLogin(ctx context.Context, input GoogleLoginInput) (*AuthResponse, error)
 	GetProfile(ctx context.Context, userID string) (*domain.User, error)
 }
