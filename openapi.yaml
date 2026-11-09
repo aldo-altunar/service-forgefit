@@ -1,0 +1,1433 @@
+openapi: 3.0.3
+info:
+  title: ForgeFit API
+  version: 1.0.0
+  description: >-
+    Contrato HTTP inferido del router Gin, handlers, puertos y entidades del
+    proyecto. Los endpoints de negocio usan el prefijo /api/v1. Las respuestas
+    de error usan el campo JSON `error`. El endpoint /api/v1/auth/google aparece
+    en documentación antigua, pero no está registrado en el servidor actual.
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+  - url: https://{host}
+    description: Servidor desplegado
+    variables:
+      host:
+        default: api.example.com
+tags:
+  - name: Health
+  - name: Auth
+  - name: Dashboard
+  - name: Profile
+  - name: Activity
+  - name: Runs
+  - name: Routines
+  - name: Nutrition
+security: []
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Comprobar que el proceso está activo
+      responses:
+        '200':
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    enum: [UP]
+                  service:
+                    type: string
+                    example: ForgeFit API
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Comprobar disponibilidad de la base de datos
+      responses:
+        '200':
+          description: Base de datos accesible
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [READY]
+        '503':
+          description: Base de datos no disponible
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [DOWN]
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar usuario
+      description: Nombre de 2 caracteres como mínimo, correo válido y contraseña de 6 caracteres como mínimo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: Juan Pérez
+              email: juan@example.com
+              password: password123
+      responses:
+        '201':
+          description: Usuario registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ya existe una cuenta con ese correo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: juan@example.com
+              password: password123
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Obtener resumen del dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resumen agregado del usuario
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/profile:
+    get:
+      tags: [Profile]
+      summary: Obtener usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos públicos del usuario
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Profile]
+      summary: Actualizar medidas y métricas del perfil
+      description: Los campos no tienen validaciones de negocio en el handler; se aceptan como valores numéricos.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              weight_kg: 75.5
+              height_cm: 180
+              age: 25
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/profile/details:
+    get:
+      tags: [Profile]
+      summary: Obtener medidas y métricas del perfil
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil extendido
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/activity/today:
+    get:
+      tags: [Activity]
+      summary: Obtener actividad del día
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resumen de actividad diaria
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DailyActivity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/settings:
+    get:
+      tags: [Profile]
+      summary: Obtener ajustes de cuenta
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Nombre y correo de la cuenta
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Profile]
+      summary: Actualizar nombre y correo de la cuenta
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountSettingsRequest'
+            example:
+              name: Juan Pérez
+              email: juan@example.com
+      responses:
+        '200':
+          description: Ajustes actualizados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: El correo ya está asociado a otra cuenta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/notification-preferences:
+    get:
+      tags: [Profile]
+      summary: Obtener preferencias de notificación
+      description: Si aún no existen, se crean con todas las preferencias desactivadas.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Preferencias actuales
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NotificationPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Profile]
+      summary: Reemplazar preferencias de notificación
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+            example:
+              workout_reminders: true
+              hydration_reminders: true
+              nutrition_reminders: false
+              weekly_summary: true
+      responses:
+        '200':
+          description: Preferencias guardadas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NotificationPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/password:
+    put:
+      tags: [Profile]
+      summary: Cambio de contraseña deshabilitado
+      description: Esta operación está deshabilitada y no acepta payload.
+      security:
+        - bearerAuth: []
+      responses:
+        '501':
+          description: Cambio de contraseña no implementado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/users/account:
+    delete:
+      tags: [Profile]
+      summary: Eliminar y anonimizar cuenta
+      description: >-
+        Elimina datos personales y registros asociados, anonimiza la cuenta y
+        bloquea inmediatamente los tokens existentes.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cuenta eliminada
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                    example: cuenta eliminada y datos personales anonimizados
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/activity/steps:
+    post:
+      tags: [Activity]
+      summary: Sincronizar actividad del dispositivo
+      description: Todos los campos son opcionales a nivel de binding; los valores mayores que cero actualizan distancia, calorías y minutos.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncStepsRequest'
+            example:
+              steps: 8200
+              distance_km: 6.4
+              calories: 320
+              active_minutes: 48
+      responses:
+        '200':
+          description: Actividad sincronizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DailyActivity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/activity/weekly:
+    get:
+      tags: [Activity]
+      summary: Obtener gráfica semanal de actividad
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Días usados en la gráfica
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WeeklyActivityDay'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/start:
+    post:
+      tags: [Runs]
+      summary: Iniciar una carrera
+      description: Las coordenadas iniciales son opcionales en la lógica de negocio. Si se envían, latitud debe estar entre -90 y 90 y longitud entre -180 y 180.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartRunRequest'
+            example:
+              initial_lat: 19.4326
+              initial_lng: -99.1332
+      responses:
+        '201':
+          description: Carrera iniciada (o carrera activa existente)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Run'
+        '400':
+          description: JSON inválido o coordenadas fuera de rango
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/active:
+    get:
+      tags: [Runs]
+      summary: Obtener carrera activa
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrera activa o null si no hay ninguna
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  message:
+                    type: string
+                    example: carrera en curso obtenida
+                  data:
+                    oneOf:
+                      - $ref: '#/components/schemas/Run'
+                      - type: 'null'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/history:
+    get:
+      tags: [Runs]
+      summary: Obtener historial de carreras
+      description: Devuelve hasta 50 carreras. La respuesta no incluye el campo message.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carreras del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Run'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/{id}/pause:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      tags: [Runs]
+      summary: Pausar carrera
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrera pausada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Run'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Estado de carrera incompatible con la operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/{id}/resume:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      tags: [Runs]
+      summary: Reanudar carrera pausada
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrera reanudada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Run'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Estado de carrera incompatible con la operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/{id}/finish:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      tags: [Runs]
+      summary: Finalizar carrera y guardar métricas
+      description: Todos los campos métricos son opcionales en la lógica de servicio; los valores positivos sobrescriben métricas calculadas.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinishRunRequest'
+            example:
+              duration_seconds: 1800
+              distance_km: 5.2
+              current_speed_kmh: 10.4
+              avg_pace_min_km: 5.77
+              calories_burned: 320
+              avg_heart_rate_bpm: 148
+              elevation_gain_m: 35
+      responses:
+        '200':
+          description: Carrera finalizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Run'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Estado de carrera incompatible con la operación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/runs/{id}/gps:
+    parameters:
+      - $ref: '#/components/parameters/RunId'
+    post:
+      tags: [Runs]
+      summary: Añadir punto GPS a una carrera
+      description: Latitud debe estar entre -90 y 90 y longitud entre -180 y 180. La carrera debe estar en curso.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGPSPointRequest'
+            example:
+              latitude: 19.4326
+              longitude: -99.1332
+              speed_kmh: 9.8
+              altitude_m: 2240
+      responses:
+        '201':
+          description: Punto registrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RunRoutePoint'
+        '400':
+          description: JSON inválido o coordenadas fuera de rango
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: La carrera no está en curso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/routines/today:
+    get:
+      tags: [Routines]
+      summary: Obtener rutina del día
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Rutina del día y ejercicios
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/Routine'
+                          - type: 'null'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/routines/exercises/{id}/complete:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador del ejercicio
+        schema:
+          type: string
+    post:
+      tags: [Routines]
+      summary: Marcar o desmarcar ejercicio
+      description: Si el body no puede decodificarse, el handler usa is_completed=true.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToggleExerciseRequest'
+            example:
+              is_completed: true
+      responses:
+        '200':
+          description: Rutina actualizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Routine'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/nutrition/today:
+    get:
+      tags: [Nutrition]
+      summary: Obtener resumen nutricional del día
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ingesta, objetivos y registros del día
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DailyNutrition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/nutrition/water:
+    post:
+      tags: [Nutrition]
+      summary: Registrar consumo de agua
+      description: La cantidad aceptada es exactamente 150, 250 o 500 ml.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddWaterRequest'
+            example:
+              amount_ml: 250
+      responses:
+        '200':
+          description: Consumo registrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DailyNutrition'
+        '400':
+          description: Cantidad faltante o no admitida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RunId:
+      name: id
+      in: path
+      required: true
+      description: Identificador de la carrera
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: JSON inválido o campos requeridos faltantes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token ausente, inválido o expirado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado para este usuario
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Error interno
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    MessageResponse:
+      type: object
+      required: [message, data]
+      properties:
+        message:
+          type: string
+        data: {}
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 6
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthSuccess:
+      type: object
+      required: [message, data]
+      properties:
+        message:
+          type: string
+        data:
+          type: object
+          required: [token, user]
+          properties:
+            token:
+              type: string
+              description: JWT para Authorization Bearer
+            user:
+              $ref: '#/components/schemas/User'
+    User:
+      type: object
+      required: [id, name, email, auth_provider, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        auth_provider:
+          type: string
+          enum: [local]
+        avatar_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UserProfile:
+      type: object
+      required: [id, user_id, weight_kg, height_cm, age, gender, activity_level, total_workouts, streak_days, total_km, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        weight_kg:
+          type: number
+          format: double
+        height_cm:
+          type: number
+          format: double
+        age:
+          type: integer
+        gender:
+          type: string
+          description: Valor seleccionado durante el onboarding
+        activity_level:
+          type: string
+          description: Nivel de actividad seleccionado durante el onboarding
+        total_workouts:
+          type: integer
+        streak_days:
+          type: integer
+        total_km:
+          type: number
+          format: double
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UpdateProfileRequest:
+      type: object
+      properties:
+        weight_kg:
+          type: number
+          format: double
+        height_cm:
+          type: number
+          format: double
+        age:
+          type: integer
+        gender:
+          type: string
+        activity_level:
+          type: string
+    UpdateAccountSettingsRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+    UpdateNotificationPreferencesRequest:
+      type: object
+      required: [workout_reminders, hydration_reminders, nutrition_reminders, weekly_summary]
+      properties:
+        workout_reminders:
+          type: boolean
+        hydration_reminders:
+          type: boolean
+        nutrition_reminders:
+          type: boolean
+        weekly_summary:
+          type: boolean
+    NotificationPreferences:
+      type: object
+      required: [user_id, workout_reminders, hydration_reminders, nutrition_reminders, weekly_summary, updated_at]
+      properties:
+        user_id:
+          type: string
+        workout_reminders:
+          type: boolean
+        hydration_reminders:
+          type: boolean
+        nutrition_reminders:
+          type: boolean
+        weekly_summary:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+    DashboardSummary:
+      type: object
+      required: [user_greeting, user_initials, header_stats, today_steps, quick_access, weekly_activity_chart]
+      properties:
+        user_greeting:
+          type: string
+        user_initials:
+          type: string
+        header_stats:
+          type: object
+          required: [total_calories, active_minutes, streak_days]
+          properties:
+            total_calories:
+              type: integer
+            active_minutes:
+              type: integer
+            streak_days:
+              type: integer
+        today_steps:
+          $ref: '#/components/schemas/DailyActivity'
+        quick_access:
+          type: object
+          required: [last_run_summary, next_routine_summary, nutrition_summary, calories_consumed, calories_goal]
+          properties:
+            last_run_summary:
+              type: string
+            next_routine_summary:
+              type: string
+            nutrition_summary:
+              type: string
+            calories_consumed:
+              type: integer
+            calories_goal:
+              type: integer
+        weekly_activity_chart:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyActivityDay'
+    DailyActivity:
+      type: object
+      required: [id, user_id, date, steps, step_goal, distance_km, calories_burned, active_minutes, streak_days, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        date:
+          type: string
+          format: date
+        steps:
+          type: integer
+        step_goal:
+          type: integer
+        distance_km:
+          type: number
+          format: double
+        calories_burned:
+          type: integer
+        active_minutes:
+          type: integer
+        streak_days:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    WeeklyActivityDay:
+      type: object
+      required: [day_label, steps, value_pct, is_today]
+      properties:
+        day_label:
+          type: string
+        steps:
+          type: integer
+        value_pct:
+          type: number
+          format: double
+        is_today:
+          type: boolean
+    SyncStepsRequest:
+      type: object
+      properties:
+        steps:
+          type: integer
+        distance_km:
+          type: number
+          format: double
+        calories:
+          type: integer
+        active_minutes:
+          type: integer
+    StartRunRequest:
+      type: object
+      properties:
+        initial_lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        initial_lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+    FinishRunRequest:
+      type: object
+      properties:
+        duration_seconds:
+          type: integer
+        distance_km:
+          type: number
+          format: double
+        current_speed_kmh:
+          type: number
+          format: double
+        avg_pace_min_km:
+          type: number
+          format: double
+        calories_burned:
+          type: integer
+        avg_heart_rate_bpm:
+          type: integer
+        elevation_gain_m:
+          type: integer
+    AddGPSPointRequest:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        speed_kmh:
+          type: number
+          format: double
+        altitude_m:
+          type: number
+          format: double
+    Run:
+      type: object
+      required: [id, user_id, status, start_time, duration_seconds, distance_km, current_speed_kmh, avg_pace_min_km, calories_burned, avg_heart_rate_bpm, elevation_gain_m, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        status:
+          type: string
+          enum: [in_progress, paused, completed, cancelled]
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+        duration_seconds:
+          type: integer
+        distance_km:
+          type: number
+          format: double
+        current_speed_kmh:
+          type: number
+          format: double
+        avg_pace_min_km:
+          type: number
+          format: double
+        calories_burned:
+          type: integer
+        avg_heart_rate_bpm:
+          type: integer
+        elevation_gain_m:
+          type: integer
+        route_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunRoutePoint'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RunRoutePoint:
+      type: object
+      required: [id, run_id, latitude, longitude, speed_kmh, altitude_m, sequence_order, timestamp]
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        speed_kmh:
+          type: number
+          format: double
+        altitude_m:
+          type: number
+          format: double
+        sequence_order:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+    Routine:
+      type: object
+      required: [id, user_id, title, subtitle, scheduled_date, day_name, status, completed_exercises, total_exercises, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        scheduled_date:
+          type: string
+          format: date
+        day_name:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        completed_exercises:
+          type: integer
+        total_exercises:
+          type: integer
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutineExercise'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RoutineExercise:
+      type: object
+      required: [id, routine_id, exercise_order, name, sets_summary, weight_kg, is_bodyweight, is_completed, created_at]
+      properties:
+        id:
+          type: string
+        routine_id:
+          type: string
+        exercise_order:
+          type: integer
+        name:
+          type: string
+        sets_summary:
+          type: string
+        weight_kg:
+          type: number
+          format: double
+        is_bodyweight:
+          type: boolean
+        is_completed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ToggleExerciseRequest:
+      type: object
+      properties:
+        is_completed:
+          type: boolean
+    AddWaterRequest:
+      type: object
+      required: [amount_ml]
+      properties:
+        amount_ml:
+          type: integer
+          enum: [150, 250, 500]
+    DailyNutrition:
+      type: object
+      required: [id, user_id, date, water_intake_ml, water_goal_ml, calories_consumed, calories_goal, protein_g, protein_goal_g, carbs_g, carbs_goal_g, fat_g, fat_goal_g, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        date:
+          type: string
+          format: date
+        water_intake_ml:
+          type: integer
+        water_goal_ml:
+          type: integer
+        calories_consumed:
+          type: integer
+        calories_goal:
+          type: integer
+        protein_g:
+          type: integer
+        protein_goal_g:
+          type: integer
+        carbs_g:
+          type: integer
+        carbs_goal_g:
+          type: integer
+        fat_g:
+          type: integer
+        fat_goal_g:
+          type: integer
+        meal_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealLog'
+        hydration_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/HydrationLog'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MealLog:
+      type: object
+      required: [id, user_id, date, meal_type, time_str, name, description, calories, created_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        date:
+          type: string
+          format: date
+        meal_type:
+          type: string
+          enum: [desayuno, almuerzo, merienda, cena]
+        time_str:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        calories:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    HydrationLog:
+      type: object
+      required: [id, user_id, date, amount_ml, logged_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        date:
+          type: string
+          format: date
+        amount_ml:
+          type: integer
+        logged_at:
+          type: string
+          format: date-time

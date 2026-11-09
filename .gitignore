@@ -16,7 +16,6 @@ vendor/
 .env
 .env.*
 !.env.example
-openapi.yaml
 database.sql
 *.sqlite
 *.sqlite3
