@@ -26,7 +26,7 @@ func LoadConfig() *Config {
 		log.Println("No .env file found; reading configuration from environment.")
 	}
 
-	jwtExpHours, err := strconv.Atoi(getEnv("JWT_EXPIRATION_HOURS", "24"))
+	jwtExpHours, err := strconv.Atoi(getEnv("JWT_EXPIRATION_HOURS", "12"))
 	if err != nil || jwtExpHours < 1 {
 		jwtExpHours = 24
 	}

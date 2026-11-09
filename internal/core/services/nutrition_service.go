@@ -4,8 +4,9 @@ import (
 	"ForgeFit_Servidor/internal/core/domain"
 	"ForgeFit_Servidor/internal/core/ports"
 	"context"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type nutritionService struct{ nutritionRepo ports.NutritionRepository }
@@ -43,28 +44,6 @@ func (s *nutritionService) AddWater(ctx context.Context, userID string, input po
 		return nil, err
 	}
 	nutrition.WaterIntakeMl += input.AmountMl
-	nutrition.UpdatedAt = time.Now()
-	if err := s.nutritionRepo.UpsertDailyNutrition(ctx, nutrition); err != nil {
-		return nil, err
-	}
-	return nutrition, nil
-}
-
-func (s *nutritionService) AddMeal(ctx context.Context, userID string, input ports.AddMealInput) (*domain.DailyNutrition, error) {
-	if input.Calories < 0 || input.Name == "" || input.TimeStr == "" ||
-		(input.MealType != domain.MealTypeDesayuno && input.MealType != domain.MealTypeAlmuerzo && input.MealType != domain.MealTypeMerienda && input.MealType != domain.MealTypeCena) {
-		return nil, domain.ErrInvalidNutritionInput
-	}
-	nutrition, err := s.GetTodayNutrition(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	meal := &domain.MealLog{ID: uuid.New().String(), UserID: userID, Date: time.Now().Format("2006-01-02"), MealType: input.MealType, TimeStr: input.TimeStr, Name: input.Name, Description: input.Description, Calories: input.Calories, CreatedAt: time.Now()}
-	if err := s.nutritionRepo.AddMealLog(ctx, meal); err != nil {
-		return nil, err
-	}
-	nutrition.CaloriesConsumed += input.Calories
-	nutrition.MealLogs = append(nutrition.MealLogs, *meal)
 	nutrition.UpdatedAt = time.Now()
 	if err := s.nutritionRepo.UpsertDailyNutrition(ctx, nutrition); err != nil {
 		return nil, err

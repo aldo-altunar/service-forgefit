@@ -43,7 +43,7 @@ func (r *mysqlUserRepository) Create(ctx context.Context, user *domain.User) err
 func (r *mysqlUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `
 		SELECT id, name, email, password_hash, auth_provider, avatar_url, created_at, updated_at
-		FROM users WHERE email = ? LIMIT 1
+		FROM users WHERE email = ? AND is_deleted = FALSE LIMIT 1
 	`
 
 	row := r.db.QueryRowContext(ctx, query, email)
@@ -61,7 +61,7 @@ func (r *mysqlUserRepository) FindByEmail(ctx context.Context, email string) (*d
 func (r *mysqlUserRepository) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	query := `
 		SELECT id, name, email, password_hash, auth_provider, avatar_url, created_at, updated_at
-		FROM users WHERE id = ? LIMIT 1
+		FROM users WHERE id = ? AND is_deleted = FALSE LIMIT 1
 	`
 
 	row := r.db.QueryRowContext(ctx, query, id)
@@ -80,7 +80,7 @@ func (r *mysqlUserRepository) Update(ctx context.Context, user *domain.User) err
 	query := `
 		UPDATE users 
 		SET name = ?, email = ?, password_hash = ?, auth_provider = ?, avatar_url = ?, updated_at = NOW()
-		WHERE id = ?
+		WHERE id = ? AND is_deleted = FALSE
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
@@ -97,6 +97,56 @@ func (r *mysqlUserRepository) Update(ctx context.Context, user *domain.User) err
 	}
 
 	return nil
+}
+
+func (r *mysqlUserRepository) IsAccountActive(ctx context.Context, userID string) (bool, error) {
+	var active bool
+	err := r.db.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND is_deleted = FALSE)`, userID,
+	).Scan(&active)
+	return active, err
+}
+
+func (r *mysqlUserRepository) DeleteAccount(ctx context.Context, userID string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, query := range []string{
+		`DELETE FROM user_profiles WHERE user_id = ?`,
+		`DELETE FROM daily_activities WHERE user_id = ?`,
+		`DELETE FROM routines WHERE user_id = ?`,
+		`DELETE FROM runs WHERE user_id = ?`,
+		`DELETE FROM daily_nutrition WHERE user_id = ?`,
+		`DELETE FROM hydration_logs WHERE user_id = ?`,
+		`DELETE FROM meal_logs WHERE user_id = ?`,
+		`DELETE FROM notification_preferences WHERE user_id = ?`,
+	} {
+		if _, err := tx.ExecContext(ctx, query, userID); err != nil {
+			return fmt.Errorf("error deleting account data: %w", err)
+		}
+	}
+
+	result, err := tx.ExecContext(ctx, `
+		UPDATE users
+		SET name = 'Deleted user', email = CONCAT('deleted+', id, '@deleted.invalid'),
+		    password_hash = SHA2(UUID(), 256), auth_provider = 'local', avatar_url = NULL,
+		    is_deleted = TRUE, updated_at = NOW()
+		WHERE id = ? AND is_deleted = FALSE
+	`, userID)
+	if err != nil {
+		return fmt.Errorf("error anonymizing account: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlUserRepository) scanUserRow(row *sql.Row) (*domain.User, error) {

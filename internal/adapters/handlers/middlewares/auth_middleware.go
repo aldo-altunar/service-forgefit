@@ -16,7 +16,7 @@ const (
 	ContextUserEmailKey     = "userEmail"
 )
 
-func AuthMiddleware(tokenService ports.TokenService) gin.HandlerFunc {
+func AuthMiddleware(tokenService ports.TokenService, userRepository ports.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader(AuthorizationHeaderKey)
 		if len(authHeader) == 0 {
@@ -47,6 +47,13 @@ func AuthMiddleware(tokenService ports.TokenService) gin.HandlerFunc {
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or expired token",
+			})
+			return
+		}
+		active, err := userRepository.IsAccountActive(c.Request.Context(), claims.UserID)
+		if err != nil || !active {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "account is unavailable",
 			})
 			return
 		}

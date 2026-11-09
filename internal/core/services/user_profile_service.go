@@ -29,6 +29,8 @@ func (s *userProfileService) GetProfileByUserID(ctx context.Context, userID stri
 				WeightKg:      0,
 				HeightCm:      0,
 				Age:           0,
+				Gender:        "",
+				ActivityLevel: "",
 				TotalWorkouts: 0,
 				StreakDays:    0,
 				TotalKm:       0,
@@ -59,6 +61,12 @@ func (s *userProfileService) UpdateProfile(ctx context.Context, userID string, i
 	}
 	if input.Age > 0 {
 		profile.Age = input.Age
+	}
+	if input.Gender != "" {
+		profile.Gender = input.Gender
+	}
+	if input.ActivityLevel != "" {
+		profile.ActivityLevel = input.ActivityLevel
 	}
 	profile.UpdatedAt = time.Now()
 

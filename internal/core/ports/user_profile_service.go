@@ -1,8 +1,8 @@
 package ports
 
 import (
-	"context"
 	"ForgeFit_Servidor/internal/core/domain"
+	"context"
 )
 
 type UserProfileRepository interface {
@@ -12,9 +12,11 @@ type UserProfileRepository interface {
 }
 
 type UpdateProfileInput struct {
-	WeightKg float64 `json:"weight_kg"`
-	HeightCm float64 `json:"height_cm"`
-	Age      int     `json:"age"`
+	WeightKg      float64 `json:"weight_kg"`
+	HeightCm      float64 `json:"height_cm"`
+	Age           int     `json:"age"`
+	Gender        string  `json:"gender"`
+	ActivityLevel string  `json:"activity_level"`
 }
 
 type UserProfileService interface {

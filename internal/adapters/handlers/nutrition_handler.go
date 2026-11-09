@@ -66,32 +66,3 @@ func (h *NutritionHandler) AddWater(c *gin.Context) {
 		"data":    nutrition,
 	})
 }
-
-func (h *NutritionHandler) AddMeal(c *gin.Context) {
-	userID, exists := c.Get(middlewares.ContextUserIDKey)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "usuario no autenticado"})
-		return
-	}
-
-	var input ports.AddMealInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "datos de comida inválidos: " + err.Error()})
-		return
-	}
-
-	nutrition, err := h.nutritionService.AddMeal(c.Request.Context(), userID.(string), input)
-	if err != nil {
-		if errors.Is(err, domain.ErrInvalidNutritionInput) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error al agregar comida: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "comida registrada exitosamente",
-		"data":    nutrition,
-	})
-}

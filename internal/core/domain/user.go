@@ -28,6 +28,8 @@ type UserProfile struct {
 	WeightKg      float64   `json:"weight_kg"`
 	HeightCm      float64   `json:"height_cm"`
 	Age           int       `json:"age"`
+	Gender        string    `json:"gender"`
+	ActivityLevel string    `json:"activity_level"`
 	TotalWorkouts int       `json:"total_workouts"`
 	StreakDays    int       `json:"streak_days"`
 	TotalKm       float64   `json:"total_km"`
@@ -40,6 +42,5 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrInvalidToken       = errors.New("invalid or expired token")
-	ErrUnauthorized        = errors.New("unauthorized access")
+	ErrUnauthorized       = errors.New("unauthorized access")
 )
-

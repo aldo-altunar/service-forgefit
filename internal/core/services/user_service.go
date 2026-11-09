@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -89,4 +90,29 @@ func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.Us
 		return nil, domain.ErrUserNotFound
 	}
 	return user, nil
+}
+
+func (s *userService) UpdateAccountSettings(ctx context.Context, userID string, input ports.UpdateAccountSettingsInput) (*domain.User, error) {
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, domain.ErrUserNotFound
+	}
+	existing, err := s.repo.FindByEmail(ctx, input.Email)
+	if err == nil && existing.ID != userID {
+		return nil, domain.ErrUserAlreadyExists
+	}
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
+		return nil, err
+	}
+
+	user.Name = input.Name
+	user.Email = input.Email
+	if err := s.repo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) DeleteAccount(ctx context.Context, userID string) error {
+	return s.repo.DeleteAccount(ctx, userID)
 }

@@ -57,6 +57,9 @@ func main() {
 	routineHandler := handlers.NewRoutineHandler(routineService)
 	nutritionHandler := handlers.NewNutritionHandler(nutritionService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+	notificationRepo := repository.NewMySQLNotificationPreferencesRepository(db)
+	notificationService := services.NewNotificationPreferencesService(notificationRepo)
+	notificationHandler := handlers.NewNotificationPreferencesHandler(notificationService)
 
 	router := gin.Default()
 	router.Use(middlewares.CORSMiddleware())
@@ -80,9 +83,15 @@ func main() {
 		auth.POST("/login", userHandler.Login)
 
 		protected := api.Group("")
-		protected.Use(middlewares.AuthMiddleware(jwtService))
+		protected.Use(middlewares.AuthMiddleware(jwtService, userRepo))
 		protected.GET("/dashboard", dashboardHandler.GetDashboardSummary)
 		protected.GET("/users/profile", userHandler.GetProfile)
+		protected.GET("/users/settings", userHandler.GetAccountSettings)
+		protected.PUT("/users/settings", userHandler.UpdateAccountSettings)
+		protected.PUT("/users/password", userHandler.ChangePasswordDisabled)
+		protected.DELETE("/users/account", userHandler.DeleteAccount)
+		protected.GET("/users/notification-preferences", notificationHandler.GetPreferences)
+		protected.PUT("/users/notification-preferences", notificationHandler.UpdatePreferences)
 		protected.GET("/users/profile/details", profileHandler.GetProfileDetails)
 		protected.PUT("/users/profile", profileHandler.UpdateProfile)
 		protected.GET("/activity/today", activityHandler.GetTodayActivity)
@@ -99,7 +108,6 @@ func main() {
 		protected.POST("/routines/exercises/:id/complete", routineHandler.ToggleExercise)
 		protected.GET("/nutrition/today", nutritionHandler.GetTodayNutrition)
 		protected.POST("/nutrition/water", nutritionHandler.AddWater)
-		protected.POST("/nutrition/meals", nutritionHandler.AddMeal)
 	}
 
 	log.Printf("API listening on port %s", cfg.Port)

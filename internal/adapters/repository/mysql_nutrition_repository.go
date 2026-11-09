@@ -104,24 +104,6 @@ func (r *mysqlNutritionRepository) AddHydrationLog(ctx context.Context, log *dom
 	return err
 }
 
-func (r *mysqlNutritionRepository) AddMealLog(ctx context.Context, meal *domain.MealLog) error {
-	query := `
-		INSERT INTO meal_logs (id, user_id, date, meal_type, time_str, name, description, calories, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-	`
-	_, err := r.db.ExecContext(ctx, query,
-		meal.ID,
-		meal.UserID,
-		meal.Date,
-		meal.MealType,
-		meal.TimeStr,
-		meal.Name,
-		meal.Description,
-		meal.Calories,
-	)
-	return err
-}
-
 func (r *mysqlNutritionRepository) getMealLogs(ctx context.Context, userID string, date string) ([]domain.MealLog, error) {
 	query := `
 		SELECT id, user_id, date, meal_type, time_str, name, description, calories, created_at

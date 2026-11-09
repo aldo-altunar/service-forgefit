@@ -16,6 +16,11 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type UpdateAccountSettingsInput struct {
+	Name  string `json:"name" binding:"required,min=2"`
+	Email string `json:"email" binding:"required,email"`
+}
+
 type AuthResponse struct {
 	Token string       `json:"token"`
 	User  *domain.User `json:"user"`
@@ -25,4 +30,6 @@ type UserService interface {
 	Register(ctx context.Context, input RegisterInput) (*AuthResponse, error)
 	Login(ctx context.Context, input LoginInput) (*AuthResponse, error)
 	GetProfile(ctx context.Context, userID string) (*domain.User, error)
+	UpdateAccountSettings(ctx context.Context, userID string, input UpdateAccountSettingsInput) (*domain.User, error)
+	DeleteAccount(ctx context.Context, userID string) error
 }
