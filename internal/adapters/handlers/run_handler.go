@@ -85,6 +85,24 @@ func (h *RunHandler) GetRunHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": items})
 }
 
+func (h *RunHandler) DeleteRun(c *gin.Context) {
+	userID, exists := c.Get(middlewares.ContextUserIDKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "usuario no autenticado"})
+		return
+	}
+	deleted, err := h.runService.DeleteRun(c.Request.Context(), userID.(string), c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error al eliminar carrera: " + err.Error()})
+		return
+	}
+	if !deleted {
+		c.JSON(http.StatusNotFound, gin.H{"error": "carrera no encontrada"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *RunHandler) PauseRun(c *gin.Context) {
 	userID, exists := c.Get(middlewares.ContextUserIDKey)
 	if !exists {

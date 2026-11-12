@@ -93,6 +93,29 @@ func (r *mysqlRunRepository) ListByUserID(ctx context.Context, userID string, li
 	return items, rows.Err()
 }
 
+func (r *mysqlRunRepository) DeleteByUserID(ctx context.Context, userID string, runID string) (bool, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("error starting run deletion: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `DELETE FROM run_route_points WHERE run_id = ? AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND user_id = ?)`, runID, runID, userID); err != nil {
+		return false, fmt.Errorf("error deleting run route: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, `DELETE FROM runs WHERE id = ? AND user_id = ?`, runID, userID)
+	if err != nil {
+		return false, fmt.Errorf("error deleting run: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted run: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("error committing run deletion: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *mysqlRunRepository) Update(ctx context.Context, run *domain.Run) error {
 	query := `
 		UPDATE runs

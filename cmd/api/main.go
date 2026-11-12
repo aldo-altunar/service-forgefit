@@ -100,6 +100,7 @@ func main() {
 		protected.POST("/runs/start", runHandler.StartRun)
 		protected.GET("/runs/active", runHandler.GetActiveRun)
 		protected.GET("/runs/history", runHandler.GetRunHistory)
+		protected.DELETE("/runs/:id", runHandler.DeleteRun)
 		protected.POST("/runs/:id/pause", runHandler.PauseRun)
 		protected.POST("/runs/:id/resume", runHandler.ResumeRun)
 		protected.POST("/runs/:id/finish", runHandler.FinishRun)

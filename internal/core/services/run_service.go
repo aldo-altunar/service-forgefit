@@ -232,3 +232,7 @@ func (s *runService) GetLastRun(ctx context.Context, userID string) (*domain.Run
 func (s *runService) GetRunHistory(ctx context.Context, userID string) ([]domain.Run, error) {
 	return s.runRepo.ListByUserID(ctx, userID, 50)
 }
+
+func (s *runService) DeleteRun(ctx context.Context, userID string, runID string) (bool, error) {
+	return s.runRepo.DeleteByUserID(ctx, userID, runID)
+}

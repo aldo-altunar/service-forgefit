@@ -11,6 +11,7 @@ type RunRepository interface {
 	GetActiveRunByUserID(ctx context.Context, userID string) (*domain.Run, error)
 	GetLastRunByUserID(ctx context.Context, userID string) (*domain.Run, error)
 	ListByUserID(ctx context.Context, userID string, limit int) ([]domain.Run, error)
+	DeleteByUserID(ctx context.Context, userID string, runID string) (bool, error)
 	Update(ctx context.Context, run *domain.Run) error
 	AddRoutePoint(ctx context.Context, point *domain.RunRoutePoint) error
 	GetRoutePoints(ctx context.Context, runID string) ([]domain.RunRoutePoint, error)
@@ -47,4 +48,5 @@ type RunService interface {
 	AddGPSPoint(ctx context.Context, userID string, runID string, input AddGPSPointInput) (*domain.RunRoutePoint, error)
 	GetLastRun(ctx context.Context, userID string) (*domain.Run, error)
 	GetRunHistory(ctx context.Context, userID string) ([]domain.Run, error)
+	DeleteRun(ctx context.Context, userID string, runID string) (bool, error)
 }
