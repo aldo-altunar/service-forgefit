@@ -1,16 +1,41 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"ForgeFit_Servidor/internal/adapters/handlers/middlewares"
+	"ForgeFit_Servidor/internal/core/domain"
 	"ForgeFit_Servidor/internal/core/ports"
 )
 
 type RoutineHandler struct {
 	routineService ports.RoutineService
+}
+
+func (h *RoutineHandler) CreateRoutine(c *gin.Context) {
+	userID, exists := c.Get(middlewares.ContextUserIDKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "usuario no autenticado"})
+		return
+	}
+	var input ports.CreateRoutineInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "datos de rutina inválidos"})
+		return
+	}
+	routine, err := h.routineService.CreateRoutine(c.Request.Context(), userID.(string), input)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidRoutineInput) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error al crear rutina: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "rutina creada", "data": routine})
 }
 
 func NewRoutineHandler(routineService ports.RoutineService) *RoutineHandler {

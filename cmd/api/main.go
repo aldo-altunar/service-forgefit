@@ -106,8 +106,10 @@ func main() {
 		protected.POST("/runs/:id/finish", runHandler.FinishRun)
 		protected.POST("/runs/:id/gps", runHandler.AddGPSPoint)
 		protected.GET("/routines/today", routineHandler.GetTodayRoutine)
+		protected.POST("/routines", routineHandler.CreateRoutine)
 		protected.POST("/routines/exercises/:id/complete", routineHandler.ToggleExercise)
 		protected.GET("/nutrition/today", nutritionHandler.GetTodayNutrition)
+		protected.POST("/nutrition/meals", nutritionHandler.AddMeal)
 		protected.POST("/nutrition/water", nutritionHandler.AddWater)
 	}
 

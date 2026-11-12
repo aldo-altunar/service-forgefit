@@ -6,6 +6,7 @@ import (
 )
 
 var ErrInvalidNutritionInput = errors.New("invalid nutrition input")
+var ErrInvalidMealInput = errors.New("invalid meal input")
 
 type MealType string
 

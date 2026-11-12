@@ -121,12 +121,13 @@ Servidor/
 
 #### Rutinas y Ejercicios
 - `GET /api/v1/routines/today` - Obtiene la rutina de ejercicios de hoy con la lista de ejercicios.
+- `POST /api/v1/routines` - Crea una rutina con ejercicios para una fecha específica.
 - `POST /api/v1/routines/exercises/:id/complete` - Marca o desmarca un ejercicio como completado.
 
 #### Nutrición e Hidratación
 - `GET /api/v1/nutrition/today` - Obtiene el consumo de agua, calorías y macros de hoy.
 - `POST /api/v1/nutrition/water` - Registra consumo de agua (+150ml, +250ml, +500ml).
-- Las comidas mostradas por `GET /api/v1/nutrition/today` se leen de la base de datos; no existe endpoint para registrarlas.
+- `POST /api/v1/nutrition/meals` - Registra una comida de hoy y actualiza las calorías consumidas.
 
 El contrato OpenAPI con esquemas de request y response está en [openapi.yaml](openapi.yaml).
 

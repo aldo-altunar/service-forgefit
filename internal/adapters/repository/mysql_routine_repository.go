@@ -84,7 +84,12 @@ func (r *mysqlRoutineRepository) CreateRoutine(ctx context.Context, routine *dom
 		INSERT INTO routines (id, user_id, title, subtitle, scheduled_date, day_name, status, completed_exercises, total_exercises, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
-	_, err := r.db.ExecContext(ctx, query,
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, query,
 		routine.ID,
 		routine.UserID,
 		routine.Title,
@@ -104,7 +109,7 @@ func (r *mysqlRoutineRepository) CreateRoutine(ctx context.Context, routine *dom
 			INSERT INTO routine_exercises (id, routine_id, exercise_order, name, sets_summary, weight_kg, is_bodyweight, is_completed, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
 		`
-		_, _ = r.db.ExecContext(ctx, exQuery,
+		if _, err := tx.ExecContext(ctx, exQuery,
 			ex.ID,
 			routine.ID,
 			ex.ExerciseOrder,
@@ -113,9 +118,11 @@ func (r *mysqlRoutineRepository) CreateRoutine(ctx context.Context, routine *dom
 			ex.WeightKg,
 			ex.IsBodyweight,
 			ex.IsCompleted,
-		)
+		); err != nil {
+			return err
+		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (r *mysqlRoutineRepository) scanRoutineRow(row *sql.Row) (*domain.Routine, error) {

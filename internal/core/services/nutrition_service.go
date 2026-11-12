@@ -4,6 +4,7 @@ import (
 	"ForgeFit_Servidor/internal/core/domain"
 	"ForgeFit_Servidor/internal/core/ports"
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,4 +50,28 @@ func (s *nutritionService) AddWater(ctx context.Context, userID string, input po
 		return nil, err
 	}
 	return nutrition, nil
+}
+
+func (s *nutritionService) AddMeal(ctx context.Context, userID string, input ports.AddMealInput) (*domain.MealLog, error) {
+	validMealType := input.MealType == domain.MealTypeDesayuno || input.MealType == domain.MealTypeAlmuerzo || input.MealType == domain.MealTypeMerienda || input.MealType == domain.MealTypeCena
+	if !validMealType || strings.TrimSpace(input.Name) == "" || input.Calories < 0 {
+		return nil, domain.ErrInvalidMealInput
+	}
+	mealTime, err := time.Parse("15:04", input.TimeStr)
+	if err != nil {
+		return nil, domain.ErrInvalidMealInput
+	}
+	if _, err := s.GetTodayNutrition(ctx, userID); err != nil {
+		return nil, err
+	}
+	meal := &domain.MealLog{
+		ID: uuid.New().String(), UserID: userID, Date: time.Now().Format("2006-01-02"),
+		MealType: input.MealType, TimeStr: mealTime.Format("15:04"),
+		Name: strings.TrimSpace(input.Name), Description: strings.TrimSpace(input.Description),
+		Calories: input.Calories, CreatedAt: time.Now(),
+	}
+	if err := s.nutritionRepo.AddMealLog(ctx, meal); err != nil {
+		return nil, err
+	}
+	return meal, nil
 }

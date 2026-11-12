@@ -777,6 +777,47 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/routines:
+    post:
+      tags: [Routines]
+      summary: Crear una rutina con sus ejercicios
+      description: La rutina queda asociada al usuario autenticado y se crea junto con sus ejercicios en una transacción.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoutineRequest'
+            example:
+              title: Tren superior
+              subtitle: Fuerza
+              scheduled_date: '2026-11-11'
+              day_name: Miércoles
+              exercises:
+                - name: Press de banca
+                  sets_summary: 4 x 8
+                  weight_kg: 40
+                  is_bodyweight: false
+      responses:
+        '201':
+          description: Rutina creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Routine'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/routines/exercises/{id}/complete:
     parameters:
       - name: id
@@ -833,6 +874,43 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/DailyNutrition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/nutrition/meals:
+    post:
+      tags: [Nutrition]
+      summary: Registrar una comida
+      description: Guarda la comida para el usuario autenticado y el día actual, y actualiza sus calorías consumidas.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMealRequest'
+            example:
+              meal_type: desayuno
+              time_str: '08:30'
+              name: Avena con fruta
+              description: Avena, plátano y yogur
+              calories: 420
+      responses:
+        '201':
+          description: Comida registrada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MealLog'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1327,6 +1405,37 @@ components:
         updated_at:
           type: string
           format: date-time
+    CreateRoutineRequest:
+      type: object
+      required: [title, scheduled_date, exercises]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subtitle:
+          type: string
+        scheduled_date:
+          type: string
+          format: date
+        day_name:
+          type: string
+        exercises:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [name, sets_summary]
+            properties:
+              name:
+                type: string
+              sets_summary:
+                type: string
+              weight_kg:
+                type: number
+                format: double
+                minimum: 0
+              is_bodyweight:
+                type: boolean
     RoutineExercise:
       type: object
       required: [id, routine_id, exercise_order, name, sets_summary, weight_kg, is_bodyweight, is_completed, created_at]
@@ -1363,6 +1472,24 @@ components:
         amount_ml:
           type: integer
           enum: [150, 250, 500]
+    CreateMealRequest:
+      type: object
+      required: [meal_type, time_str, name, calories]
+      properties:
+        meal_type:
+          type: string
+          enum: [desayuno, almuerzo, merienda, cena]
+        time_str:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        calories:
+          type: integer
+          minimum: 0
     DailyNutrition:
       type: object
       required: [id, user_id, date, water_intake_ml, water_goal_ml, calories_consumed, calories_goal, protein_g, protein_goal_g, carbs_g, carbs_goal_g, fat_g, fat_goal_g, created_at, updated_at]

@@ -49,7 +49,10 @@ func (r *mysqlNutritionRepository) GetByDate(ctx context.Context, userID string,
 		return nil, fmt.Errorf("error querying daily_nutrition: %w", err)
 	}
 
-	meals, _ := r.getMealLogs(ctx, userID, date)
+	meals, err := r.getMealLogs(ctx, userID, date)
+	if err != nil {
+		return nil, fmt.Errorf("error querying meal logs: %w", err)
+	}
 	hydrations, _ := r.getHydrationLogs(ctx, userID, date)
 	n.MealLogs = meals
 	n.HydrationLogs = hydrations
@@ -104,6 +107,24 @@ func (r *mysqlNutritionRepository) AddHydrationLog(ctx context.Context, log *dom
 	return err
 }
 
+func (r *mysqlNutritionRepository) AddMealLog(ctx context.Context, log *domain.MealLog) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting meal transaction: %w", err)
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `INSERT INTO meal_logs (id, user_id, date, meal_type, time_str, name, description, calories, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+		log.ID, log.UserID, log.Date, log.MealType, log.TimeStr, log.Name, log.Description, log.Calories)
+	if err != nil {
+		return fmt.Errorf("error inserting meal log: %w", err)
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE daily_nutrition SET calories_consumed = calories_consumed + ?, updated_at = NOW() WHERE user_id = ? AND date = ?`, log.Calories, log.UserID, log.Date)
+	if err != nil {
+		return fmt.Errorf("error updating daily calories: %w", err)
+	}
+	return tx.Commit()
+}
+
 func (r *mysqlNutritionRepository) getMealLogs(ctx context.Context, userID string, date string) ([]domain.MealLog, error) {
 	query := `
 		SELECT id, user_id, date, meal_type, time_str, name, description, calories, created_at
@@ -118,11 +139,12 @@ func (r *mysqlNutritionRepository) getMealLogs(ctx context.Context, userID strin
 	var meals []domain.MealLog
 	for rows.Next() {
 		var m domain.MealLog
-		if err := rows.Scan(&m.ID, &m.UserID, &m.Date, &m.MealType, &m.TimeStr, &m.Name, &m.Description, &m.Calories, &m.CreatedAt); err == nil {
-			meals = append(meals, m)
+		if err := rows.Scan(&m.ID, &m.UserID, &m.Date, &m.MealType, &m.TimeStr, &m.Name, &m.Description, &m.Calories, &m.CreatedAt); err != nil {
+			return nil, err
 		}
+		meals = append(meals, m)
 	}
-	return meals, nil
+	return meals, rows.Err()
 }
 
 func (r *mysqlNutritionRepository) getHydrationLogs(ctx context.Context, userID string, date string) ([]domain.HydrationLog, error) {
