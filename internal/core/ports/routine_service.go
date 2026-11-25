@@ -7,7 +7,7 @@ import (
 
 type RoutineRepository interface {
 	GetTodayRoutine(ctx context.Context, userID string, date string) (*domain.Routine, error)
-	GetNextRoutine(ctx context.Context, userID string) (*domain.Routine, error)
+	GetNextRoutine(ctx context.Context, userID string, fromDate string) (*domain.Routine, error)
 	FindByID(ctx context.Context, routineID string) (*domain.Routine, error)
 	UpdateExerciseCompletion(ctx context.Context, exerciseID string, isCompleted bool) error
 	UpdateRoutineProgress(ctx context.Context, routineID string) error

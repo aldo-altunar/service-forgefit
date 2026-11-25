@@ -32,12 +32,12 @@ func (r *mysqlRoutineRepository) GetTodayRoutine(ctx context.Context, userID str
 	return routine, nil
 }
 
-func (r *mysqlRoutineRepository) GetNextRoutine(ctx context.Context, userID string) (*domain.Routine, error) {
+func (r *mysqlRoutineRepository) GetNextRoutine(ctx context.Context, userID string, fromDate string) (*domain.Routine, error) {
 	query := `
 		SELECT id, user_id, title, subtitle, scheduled_date, day_name, status, completed_exercises, total_exercises, created_at, updated_at
-		FROM routines WHERE user_id = ? AND status != 'completed' ORDER BY scheduled_date ASC LIMIT 1
+		FROM routines WHERE user_id = ? AND scheduled_date >= ? AND status != 'completed' ORDER BY scheduled_date ASC LIMIT 1
 	`
-	row := r.db.QueryRowContext(ctx, query, userID)
+	row := r.db.QueryRowContext(ctx, query, userID, fromDate)
 	routine, err := r.scanRoutineRow(row)
 	if err != nil || routine == nil {
 		return nil, err

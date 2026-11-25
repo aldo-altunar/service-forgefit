@@ -22,7 +22,7 @@ func (s *routineService) GetTodayRoutine(ctx context.Context, userID string) (*d
 }
 
 func (s *routineService) GetNextRoutine(ctx context.Context, userID string) (*domain.Routine, error) {
-	return s.routineRepo.GetNextRoutine(ctx, userID)
+	return s.routineRepo.GetNextRoutine(ctx, userID, time.Now().Format("2006-01-02"))
 }
 
 func (s *routineService) CreateRoutine(ctx context.Context, userID string, input ports.CreateRoutineInput) (*domain.Routine, error) {

@@ -1,8 +1,8 @@
 package ports
 
 import (
-	"context"
 	"ForgeFit_Servidor/internal/core/domain"
+	"context"
 )
 
 type UserRepository interface {
@@ -12,4 +12,6 @@ type UserRepository interface {
 	Update(ctx context.Context, user *domain.User) error
 	DeleteAccount(ctx context.Context, userID string) error
 	IsAccountActive(ctx context.Context, userID string) (bool, error)
+	ListUsers(ctx context.Context) ([]*domain.User, error)
+	CreateFirstAdmin(ctx context.Context, user *domain.User) error
 }

@@ -88,6 +88,56 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	})
 }
 
+func (h *UserHandler) ListUsers(c *gin.Context) {
+	users, err := h.userService.ListUsers(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error al listar usuarios: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "usuarios obtenidos", "data": users})
+}
+
+func (h *UserHandler) CreateAdminUser(c *gin.Context) {
+	var input ports.CreateAdminUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "datos del administrador inválidos: " + err.Error()})
+		return
+	}
+
+	user, err := h.userService.CreateAdminUser(c.Request.Context(), input)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error al crear administrador: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "administrador creado", "data": user})
+}
+
+func (h *UserHandler) BootstrapAdmin(c *gin.Context) {
+	var input ports.CreateAdminUserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "datos del administrador inválidos: " + err.Error()})
+		return
+	}
+
+	user, err := h.userService.BootstrapAdminUser(c.Request.Context(), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUserAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": "ya existe una cuenta con ese correo"})
+		case errors.Is(err, domain.ErrAdminAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": "el administrador inicial ya fue creado"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error al crear administrador inicial: " + err.Error()})
+		}
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "administrador inicial creado; ya puedes iniciar sesión", "data": user})
+}
+
 func (h *UserHandler) GetAccountSettings(c *gin.Context) {
 	userID, exists := c.Get(middlewares.ContextUserIDKey)
 	if !exists {

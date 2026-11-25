@@ -10,15 +10,16 @@ import (
 )
 
 type Config struct {
-	Port               string
-	Env                string
-	DBHost             string
-	DBPort             string
-	DBUser             string
-	DBPassword         string
-	DBName             string
-	JWTSecret          string
-	JWTExpirationHours int
+	Port                string
+	Env                 string
+	DBHost              string
+	DBPort              string
+	DBUser              string
+	DBPassword          string
+	DBName              string
+	JWTSecret           string
+	JWTExpirationHours  int
+	AdminBootstrapToken string
 }
 
 func LoadConfig() *Config {
@@ -32,21 +33,25 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:               getEnv("PORT", "8080"),
-		Env:                getEnv("ENV", "development"),
-		DBHost:             getEnv("DB_HOST", "127.0.0.1"),
-		DBPort:             getEnv("DB_PORT", "3306"),
-		DBUser:             getEnv("DB_USER", "root"),
-		DBPassword:         getEnv("DB_PASSWORD", ""),
-		DBName:             getEnv("DB_NAME", "forgefit_db"),
-		JWTSecret:          getEnv("JWT_SECRET", "default-jwt-secret-key-change-me"),
-		JWTExpirationHours: jwtExpHours,
+		Port:                getEnv("PORT", "2006"),
+		Env:                 getEnv("ENV", "development"),
+		DBHost:              getEnv("DB_HOST", "127.0.0.1"),
+		DBPort:              getEnv("DB_PORT", "3306"),
+		DBUser:              getEnv("DB_USER", "root"),
+		DBPassword:          getEnv("DB_PASSWORD", ""),
+		DBName:              getEnv("DB_NAME", "forgefit_db"),
+		JWTSecret:           getEnv("JWT_SECRET", "default-jwt-secret-key-change-me"),
+		JWTExpirationHours:  jwtExpHours,
+		AdminBootstrapToken: getEnv("ADMIN_BOOTSTRAP_TOKEN", ""),
 	}
 }
 
 func (c *Config) Validate() error {
 	if c.Port == "" {
 		return fmt.Errorf("PORT must not be empty")
+	}
+	if c.AdminBootstrapToken != "" && len(c.AdminBootstrapToken) < 32 {
+		return fmt.Errorf("ADMIN_BOOTSTRAP_TOKEN must be at least 32 characters")
 	}
 	if c.Env != "production" {
 		return nil

@@ -44,6 +44,7 @@ func (s *userService) Register(ctx context.Context, input ports.RegisterInput) (
 		ID:           uuid.New().String(),
 		Name:         input.Name,
 		Email:        input.Email,
+		Role:         domain.UserRoleUser,
 		PasswordHash: &hashedPassword,
 		AuthProvider: domain.ProviderLocal,
 	}
@@ -115,4 +116,64 @@ func (s *userService) UpdateAccountSettings(ctx context.Context, userID string, 
 
 func (s *userService) DeleteAccount(ctx context.Context, userID string) error {
 	return s.repo.DeleteAccount(ctx, userID)
+}
+
+func (s *userService) ListUsers(ctx context.Context) ([]*domain.User, error) {
+	return s.repo.ListUsers(ctx)
+}
+
+func (s *userService) CreateAdminUser(ctx context.Context, input ports.CreateAdminUserInput) (*domain.User, error) {
+	existingUser, err := s.repo.FindByEmail(ctx, input.Email)
+	if err == nil && existingUser != nil {
+		return nil, domain.ErrUserAlreadyExists
+	}
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
+		return nil, fmt.Errorf("check existing admin email: %w", err)
+	}
+
+	hashedPassword, err := s.hasher.Hash(input.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash admin password: %w", err)
+	}
+
+	user := &domain.User{
+		ID:           uuid.New().String(),
+		Name:         input.Name,
+		Email:        input.Email,
+		Role:         domain.UserRoleAdmin,
+		PasswordHash: &hashedPassword,
+		AuthProvider: domain.ProviderLocal,
+	}
+	if err := s.repo.Create(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to create admin user: %w", err)
+	}
+	return user, nil
+}
+
+func (s *userService) BootstrapAdminUser(ctx context.Context, input ports.CreateAdminUserInput) (*domain.User, error) {
+	existingUser, err := s.repo.FindByEmail(ctx, input.Email)
+	if err == nil && existingUser != nil {
+		return nil, domain.ErrUserAlreadyExists
+	}
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
+		return nil, fmt.Errorf("check existing bootstrap email: %w", err)
+	}
+
+	hashedPassword, err := s.hasher.Hash(input.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash bootstrap password: %w", err)
+	}
+
+	user := &domain.User{
+		ID:           uuid.New().String(),
+		Name:         input.Name,
+		Email:        input.Email,
+		Role:         domain.UserRoleAdmin,
+		PasswordHash: &hashedPassword,
+		AuthProvider: domain.ProviderLocal,
+	}
+	if err := s.repo.CreateFirstAdmin(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
 }

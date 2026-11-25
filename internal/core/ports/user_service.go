@@ -1,11 +1,17 @@
 package ports
 
 import (
-	"context"
 	"ForgeFit_Servidor/internal/core/domain"
+	"context"
 )
 
 type RegisterInput struct {
+	Name     string `json:"name" binding:"required,min=2"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+type CreateAdminUserInput struct {
 	Name     string `json:"name" binding:"required,min=2"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -32,4 +38,7 @@ type UserService interface {
 	GetProfile(ctx context.Context, userID string) (*domain.User, error)
 	UpdateAccountSettings(ctx context.Context, userID string, input UpdateAccountSettingsInput) (*domain.User, error)
 	DeleteAccount(ctx context.Context, userID string) error
+	ListUsers(ctx context.Context) ([]*domain.User, error)
+	CreateAdminUser(ctx context.Context, input CreateAdminUserInput) (*domain.User, error)
+	BootstrapAdminUser(ctx context.Context, input CreateAdminUserInput) (*domain.User, error)
 }

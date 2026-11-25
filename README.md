@@ -91,6 +91,7 @@ Servidor/
 ### Autenticación Pública
 - `POST /api/v1/auth/register` - Registro de nuevo usuario.
 - `POST /api/v1/auth/login` - Inicio de sesión con correo y contraseña.
+- `POST /api/v1/auth/bootstrap-admin` - Crea el primer administrador si todavía no existe; requiere `X-Admin-Bootstrap-Token`.
 
 ### Endpoints Protegidos (requiere header `Authorization: Bearer <token>`)
 
@@ -99,6 +100,8 @@ Servidor/
 
 #### Perfil y Usuario
 - `GET /api/v1/users/profile` - Obtiene la información del usuario autenticado.
+- `GET /api/v1/admin/users` - Lista usuarios activos; requiere rol `admin`.
+- `POST /api/v1/admin/users` - Crea otra cuenta administradora; requiere rol `admin`. Recibe `name`, `email` y `password`.
 - `GET /api/v1/users/profile/details` - Obtiene los datos corporales y métricas del perfil.
 - `PUT /api/v1/users/profile` - Actualiza peso, altura, edad, género y nivel de actividad.
 - `GET /api/v1/users/settings` y `PUT /api/v1/users/settings` - Consulta y actualiza nombre y correo.
@@ -122,12 +125,16 @@ Servidor/
 #### Rutinas y Ejercicios
 - `GET /api/v1/routines/today` - Obtiene la rutina de ejercicios de hoy con la lista de ejercicios.
 - `POST /api/v1/routines` - Crea una rutina con ejercicios para una fecha específica.
+- `POST /api/v1/admin/users/:userId/routines` - Asigna una rutina a un usuario; requiere rol `admin`.
 - `POST /api/v1/routines/exercises/:id/complete` - Marca o desmarca un ejercicio como completado.
 
 #### Nutrición e Hidratación
 - `GET /api/v1/nutrition/today` - Obtiene el consumo de agua, calorías y macros de hoy.
 - `POST /api/v1/nutrition/water` - Registra consumo de agua (+150ml, +250ml, +500ml).
 - `POST /api/v1/nutrition/meals` - Registra una comida de hoy y actualiza las calorías consumidas.
+- `POST /api/v1/admin/users/:userId/nutrition/meals` - Asigna una comida a un usuario; requiere rol `admin`.
+
+Para crear el primer administrador sin tener uno previo, aplica `migrations/20261124_add_user_role.sql` en la base existente y configura `ADMIN_BOOTSTRAP_TOKEN` como variable de entorno del servidor con un secreto de al menos 32 caracteres. Llama una sola vez a `POST /api/v1/auth/bootstrap-admin` enviando ese valor en `X-Admin-Bootstrap-Token` y un JSON con `name`, `email` y `password` (mínimo 6 caracteres). El endpoint solo crea el administrador mientras no exista ninguno; la base de datos serializa intentos simultáneos. Después elimina `ADMIN_BOOTSTRAP_TOKEN` y reinicia el servidor. Para crear administradores adicionales, usa `POST /api/v1/admin/users` con una sesión de administrador. Las cuentas registradas normalmente reciben `user_role = 'user'`.
 
 El contrato OpenAPI con esquemas de request y response está en [openapi.yaml](openapi.yaml).
 

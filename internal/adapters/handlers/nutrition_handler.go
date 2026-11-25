@@ -73,6 +73,9 @@ func (h *NutritionHandler) AddMeal(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "usuario no autenticado"})
 		return
 	}
+	if targetUserID, isAdminAssignment := c.Get(middlewares.ContextTargetUserIDKey); isAdminAssignment {
+		userID = targetUserID
+	}
 	var input ports.AddMealInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "datos de comida inválidos"})

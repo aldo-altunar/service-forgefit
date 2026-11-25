@@ -134,6 +134,55 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/auth/bootstrap-admin:
+    post:
+      tags: [Auth]
+      summary: Crear el primer administrador
+      description: Disponible solo con ADMIN_BOOTSTRAP_TOKEN configurado y mientras no exista ningún administrador. La creación se serializa en MySQL.
+      parameters:
+        - in: header
+          name: X-Admin-Bootstrap-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Administrador inicial creado; iniciar sesión por separado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Token de bootstrap inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Bootstrap deshabilitado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Ya existe una cuenta con el correo o ya se creó el administrador inicial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/dashboard:
     get:
       tags: [Dashboard]
@@ -1046,7 +1095,7 @@ components:
               $ref: '#/components/schemas/User'
     User:
       type: object
-      required: [id, name, email, auth_provider, created_at, updated_at]
+      required: [id, name, email, role, auth_provider, created_at, updated_at]
       properties:
         id:
           type: string
@@ -1055,6 +1104,9 @@ components:
         email:
           type: string
           format: email
+        role:
+          type: string
+          enum: [user, admin]
         auth_provider:
           type: string
           enum: [local]

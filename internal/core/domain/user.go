@@ -15,12 +15,20 @@ type User struct {
 	ID           string       `json:"id"`
 	Name         string       `json:"name"`
 	Email        string       `json:"email"`
+	Role         UserRole     `json:"role"`
 	PasswordHash *string      `json:"-"`
 	AuthProvider AuthProvider `json:"auth_provider"`
 	AvatarURL    *string      `json:"avatar_url,omitempty"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at"`
 }
+
+type UserRole string
+
+const (
+	UserRoleUser  UserRole = "user"
+	UserRoleAdmin UserRole = "admin"
+)
 
 type UserProfile struct {
 	ID            string    `json:"id"`
@@ -43,4 +51,5 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrInvalidToken       = errors.New("invalid or expired token")
 	ErrUnauthorized       = errors.New("unauthorized access")
+	ErrAdminAlreadyExists = errors.New("an administrator already exists")
 )
