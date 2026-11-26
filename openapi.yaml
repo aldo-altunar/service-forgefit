@@ -205,6 +205,34 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/admin/summary:
+    get:
+      tags: [Admin]
+      summary: Obtener totales y actividad de usuarios para el panel administrador
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resumen administrativo global
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/MessageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminDashboardSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Se requiere rol de administrador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/users/profile:
     get:
       tags: [Profile]
@@ -1208,6 +1236,33 @@ components:
         updated_at:
           type: string
           format: date-time
+    AdminDashboardSummary:
+      type: object
+      required: [total_users, total_routines, total_exercises, completed_exercises, total_meals, water_today_ml, most_active_user]
+      properties:
+        total_users:
+          type: integer
+        total_routines:
+          type: integer
+        total_exercises:
+          type: integer
+        completed_exercises:
+          type: integer
+        total_meals:
+          type: integer
+        water_today_ml:
+          type: integer
+        most_active_user:
+          nullable: true
+          type: object
+          required: [user_id, name, completed_exercises]
+          properties:
+            user_id:
+              type: string
+            name:
+              type: string
+            completed_exercises:
+              type: integer
     DashboardSummary:
       type: object
       required: [user_greeting, user_initials, header_stats, today_steps, quick_access, weekly_activity_chart]

@@ -101,6 +101,7 @@ Servidor/
 #### Perfil y Usuario
 - `GET /api/v1/users/profile` - Obtiene la información del usuario autenticado.
 - `GET /api/v1/admin/users` - Lista usuarios activos; requiere rol `admin`.
+- `GET /api/v1/admin/summary` - Devuelve totales globales de usuarios, rutinas, ejercicios completados, comidas y agua de hoy; también indica el usuario con más ejercicios completados. Requiere rol `admin`.
 - `POST /api/v1/admin/users` - Crea otra cuenta administradora; requiere rol `admin`. Recibe `name`, `email` y `password`.
 - `GET /api/v1/users/profile/details` - Obtiene los datos corporales y métricas del perfil.
 - `PUT /api/v1/users/profile` - Actualiza peso, altura, edad, género y nivel de actividad.

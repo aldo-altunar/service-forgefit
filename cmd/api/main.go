@@ -38,6 +38,7 @@ func main() {
 	runRepo := repository.NewMySQLRunRepository(db)
 	routineRepo := repository.NewMySQLRoutineRepository(db)
 	nutritionRepo := repository.NewMySQLNutritionRepository(db)
+	adminDashboardRepo := repository.NewMySQLAdminDashboardRepository(db)
 
 	bcryptHasher := security.NewBcryptAdapter(10)
 	jwtService := security.NewJWTAdapter(cfg.JWTSecret, cfg.JWTExpirationHours)
@@ -49,6 +50,7 @@ func main() {
 	routineService := services.NewRoutineService(routineRepo)
 	nutritionService := services.NewNutritionService(nutritionRepo)
 	dashboardService := services.NewDashboardService(userRepo, activityService, runService, routineService, nutritionService)
+	adminDashboardService := services.NewAdminDashboardService(adminDashboardRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
 	profileHandler := handlers.NewProfileHandler(userProfileService)
@@ -57,6 +59,7 @@ func main() {
 	routineHandler := handlers.NewRoutineHandler(routineService)
 	nutritionHandler := handlers.NewNutritionHandler(nutritionService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+	adminDashboardHandler := handlers.NewAdminDashboardHandler(adminDashboardService)
 	notificationRepo := repository.NewMySQLNotificationPreferencesRepository(db)
 	notificationService := services.NewNotificationPreferencesService(notificationRepo)
 	notificationHandler := handlers.NewNotificationPreferencesHandler(notificationService)
@@ -88,6 +91,7 @@ func main() {
 		protected.GET("/dashboard", dashboardHandler.GetDashboardSummary)
 		admin := protected.Group("/admin")
 		admin.Use(middlewares.AdminMiddleware(userRepo))
+		admin.GET("/summary", adminDashboardHandler.GetSummary)
 		admin.GET("/users", userHandler.ListUsers)
 		admin.POST("/users", userHandler.CreateAdminUser)
 		admin.POST("/users/:userId/routines", middlewares.TargetUserMiddleware(userRepo), routineHandler.CreateRoutine)
